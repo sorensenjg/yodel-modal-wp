@@ -54,66 +54,25 @@ class Yodel_Wp_Admin {
 		$this->plugin_name = $plugin_name;
 		$this->version = $version;
 
-		add_action( 'init', array( $this, 'register_post_types' ) );
+		add_action( 'init', array( $this, 'register_post_types' ) ); 
+		add_action( 'admin_head', array( $this, 'admin_head_scripts' )); 
 		add_action( 'admin_menu', array( $this, 'register_admin_menu' ) );
 		add_action( 'carbon_fields_register_fields', array( $this, 'register_settings_fields' ) );
 		add_action( 'carbon_fields_register_fields', array( $this, 'register_modal_fields' ) );
 		add_action( 'carbon_fields_register_fields', array( $this, 'register_submission_fields' ) );
 
-		add_action('admin_head', function() {
-			if (get_post_type() != 'yodel-wp-modal') { 
-				return; 
-			}
-			
-			echo '
-			<style type="text/css">
-				.cf-field.cf-complex:first-of-type > .cf-field__head { 
-					display: none;  
-				}
-			</style> 
-			';
-		});
-
-		add_action('admin_head', function() {
-			if (!in_array(get_post_type(), ['yodel-wp-modal', 'yodel-wp-topbar', 'yodel-wp-submission'])) { 
-				return; 
-			} 
-
-			echo '
-			<script type="text/javascript">
-				const post_id = "' . get_the_ID() . '";
-				const post_title = "' . get_the_title() . '";
-				const post_type = "' . get_post_type() . '";
-			</script>
-			';
-		});
-
-		add_action('admin_footer', function() {
-			if (!in_array(get_post_type(), ['yodel-wp-modal', 'yodel-wp-topbar', 'yodel-wp-submission'])) { 
-				return; 
-			} 
-
-			echo '
-			<script type="text/javascript">  
-				jQuery(\'input#visibility-radio-password\').prev().remove();
-				jQuery(\'input#visibility-radio-password\').remove();
-				jQuery(\'label[for="visibility-radio-password"]\').remove();
-			</script>
-			';
-		});
-
 		add_filter( 'carbon_fields_association_field_options_yodel_wp_modal_association_post_page', function( $options ) {
-			$options['post_status'] = 'publish';
+			$options['post_status'] = 'publish';   
 
 			return $options;
 		}, PHP_INT_MAX );
-
-		add_filter( 'carbon_fields_gravity_form_options', function( $options ) { 
+		
+		add_filter( 'carbon_fields_gravity_form_options', function( $options ) {  
 			// TODO: this is not working
 
 			$options[0] = __( 'Please install the Gravity Forms plugin to select a form.', 'yodel-wp' );
 
-			return $options; 
+			return $options;  
 		}, PHP_INT_MAX );
 	}
 
@@ -158,6 +117,12 @@ class Yodel_Wp_Admin {
 		 */
 
 		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/yodel-wp-admin.js', array( 'jquery' ), $this->version, false );
+
+		wp_localize_script( $this->plugin_name, 'yodelModalAdmin', array(
+			'post_id'    => get_the_ID(),
+			'post_title' => get_the_title(),
+			'post_type'  => get_post_type(), 
+		) );
 	}
 
 	public function register_post_types() {
@@ -631,6 +596,21 @@ class Yodel_Wp_Admin {
 				// 		)
 				// 	) )
 				// 	->set_help_text( 'Please install the Gravity Forms plugin to select a form. <a href="https://www.gravityforms.com/" target="_blank">Get it here</a>' ),
+				Field::make( 'multiselect', 'yodel_wp_form_fields', __( 'Form Fields' ) )
+					->set_conditional_logic( array( 
+						'relation' => 'AND',
+						array(
+							'field' => 'yodel_wp_form_type',  
+							'value' => 'default_form',
+							'compare' => '=',
+						)
+					) ) 
+					->add_options( array(
+						'given_name' => __( 'First Name' ),
+						'family_name' => __( 'Last Name' ),
+						'phone' => __( 'Phone Number' ), 
+						'message' => __( 'Message' ),
+					) ),
 				Field::make( 'radio', 'yodel_wp_form_submission_type', __( 'Submission Type' ) )
 					->set_conditional_logic( array( 
 						'relation' => 'AND',
@@ -668,6 +648,8 @@ class Yodel_Wp_Admin {
 					) )
 					->set_default_value( 'There was an error with your submission. Please try again.' )
 					->set_required( true ),
+				Field::make( 'text', 'yodel_wp_form_success_redirect_url', __( 'Success redirect URL' ) )
+					->set_help_text( 'This is the URL to redirect to after the form is successfully submitted. Empty = no redirect.' ),
 			) )
 			->add_tab( __( 'Email', 'yodel-wp' ), array(
 				Field::make( 'text', 'yodel_wp_email_to', __( 'To', 'yodel-wp' ) )
@@ -718,6 +700,20 @@ class Yodel_Wp_Admin {
 				<h1><?php echo get_admin_page_title() ?></h1>
 			</div>
 		<?php 
+	}
+
+	public function admin_head_scripts() {
+		if (get_post_type() != 'yodel-wp-modal') { 
+			return; 
+		}
+		
+		echo '
+		<style type="text/css">
+			.cf-field.cf-complex:first-of-type > .cf-field__head { 
+				display: none;  
+			}
+		</style> 
+		';
 	}
 
 	public function console_log( $output, $with_script_tags = true ) {

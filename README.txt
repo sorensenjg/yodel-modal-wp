@@ -1,6 +1,6 @@
 === Yodel Modal ===
 Contributors: sorensenjg
-Donate link: https://yodelayheehoo.com/
+Donate link: https://useyodel.com/
 Tags: yodel, modal, popup, form, lead-gen
 Requires at least: 6.0
 Tested up to: 6.5

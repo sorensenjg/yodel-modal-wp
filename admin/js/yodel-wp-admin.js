@@ -29,19 +29,40 @@
    * practising this, we should strive to set a better example in our own work.
    */
 
+  $(function () {
+    if (
+      ["yodel-wp-modal", "yodel-wp-topbar", "yodel-wp-submission"].includes(
+        yodelModalAdmin.post_type
+      )
+    ) {
+      $("input#visibility-radio-password").prev().remove();
+      $("input#visibility-radio-password").remove();
+      $("label[for='visibility-radio-password']").remove();
+    }
+  });
+
   $(window).on("load", function () {
-    if (post_id && post_title && ["yodel-wp-modal"].includes(post_type)) {
+    if (
+      yodelModalAdmin.post_id &&
+      yodelModalAdmin.post_title &&
+      ["yodel-wp-modal"].includes(yodelModalAdmin.post_type)
+    ) {
       const shortcodeInput = $("input[value^='[yodel-wp-button'");
 
       if (shortcodeInput.length > 0) {
         shortcodeInput.val(
-          shortcodeInput.val().replace(/\bid="[^"]*"/, 'id="' + post_id + '"')
+          shortcodeInput
+            .val()
+            .replace(/\bid="[^"]*"/, 'id="' + yodelModalAdmin.post_id + '"')
         );
 
         shortcodeInput.val(
           shortcodeInput
             .val()
-            .replace(/\btitle="[^"]*"/, 'title="' + post_title + '"')
+            .replace(
+              /\btitle="[^"]*"/,
+              'title="' + yodelModalAdmin.post_title + '"'
+            )
         );
       }
     }

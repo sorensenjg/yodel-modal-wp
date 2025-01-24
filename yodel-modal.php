@@ -8,17 +8,17 @@
  * registers the activation and deactivation functions, and defines a function
  * that starts the plugin.
  *
- * @link              https://yodelayheehoo.com
+ * @link              https://useyodel.com
  * @since             1.0.0
  * @package           Yodel_Wp
  *
  * @wordpress-plugin
  * Plugin Name:       Yodel Modal
- * Plugin URI:        https://yodelayheehoo.com
+ * Plugin URI:        https://useyodel.com
  * Description:       Inspired by the ancient yodels of the Central Alps, Yodel brings you a unique way to reach your audience with custom modals. Just as yodelers once communicated across mountains, this plugin lets you share your message effectively and engagingly.
- * Version:           1.0.0
+ * Version:           1.3.1
  * Author:            Yodel   
- * Author URI:        https://yodelayheehoo.com
+ * Author URI:        https://useyodel.com
  * License:           GPL-2.0+
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  * Text Domain:       yodel-wp
@@ -35,8 +35,10 @@ if ( ! defined( 'WPINC' ) ) {
  * Start at version 1.0.0 and use SemVer - https://semver.org
  * Rename this for your plugin and update it as you release new versions.
  */
-define( 'YODEL_WP_VERSION', '1.0.0' );
-
+define( 'YODEL_WP_VERSION', '1.3.1' );  
+define( 'YODEL_WP_BASENAME',  plugin_basename( __FILE__ ) ); 
+define( 'YODEL_WP_API_URL', ( defined( 'WP_ENVIRONMENT_TYPE' ) && WP_ENVIRONMENT_TYPE === 'local' ) ? 'http://localhost:3000' : 'https://useyodel.com' );
+  
 /**
  * The code that runs during plugin activation.
  * This action is documented in includes/class-yodel-wp-activator.php

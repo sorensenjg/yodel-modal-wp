@@ -23,7 +23,7 @@ export function Modal({
   columns,
   image,
   title,
-  content: initialContent,
+  content,
   buttons,
   form_before,
   form_after,
@@ -34,7 +34,6 @@ export function Modal({
   const containerRef = useRef(null);
   const [isVisible, setIsVisible] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
-  const [content, setContent] = useState(initialContent ?? "");
 
   useEffect(() => {
     if (containerRef.current && settings.theme.color_variables) {
@@ -70,25 +69,12 @@ export function Modal({
 
       if (id.toString() === form.form_id) {
         if (response.status === "mail_sent") {
-          // const responseOutput = document.querySelector(
-          //   ".wpcf7-response-output"
-          // );
-
-          // if (responseOutput) {
-          //   responseOutput.remove();
-          // }
-
-          // if (initialContent.trim() === "") {
-          //   setContent(`<p class="text-center">${response.message}</p>`);
-          // }
-
           setIsVisible(true);
         }
       }
     };
 
     document.addEventListener("click", handleShortcodeButtonClick);
-
     if (form?.form_type === "cf7_form" && form?.form_disabled) {
       document.addEventListener("wpcf7submit", handleCF7FormSubmit);
     }
@@ -211,7 +197,7 @@ export function Modal({
       <Dialog open={isVisible} onOpenChange={handleClose}>
         <DialogContent
           id={`yodel-wp-${id}`}
-          className="yodel-wp z-[9999] w-full h-screen max-w-none p-0 border-none overflow-auto md:max-w-4xl md:h-auto md:overflow-hidden"
+          className="yodel-modal z-[9999] w-full h-screen max-w-none p-0 border-none overflow-auto md:max-w-4xl md:h-auto md:overflow-hidden"
           onEscapeKeyDown={handleModalEvents}
           onPointerDownOutside={handleModalEvents}
           onInteractOutside={handleModalEvents}
@@ -279,7 +265,7 @@ export function Modal({
                 )}
                 <Form
                   config={config}
-                  id={id}
+                  modal_id={id}
                   before={form_before}
                   after={form_after}
                   {...form}

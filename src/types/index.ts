@@ -1,14 +1,16 @@
 export type Config = {
-  ajaxUrl: string;
   nonce: string;
+  baseUrl: string;
+  ajaxUrl: string;
+  containerId: string;
   isUserAdmin: boolean;
   isUserLoggedIn: boolean;
 };
 
 export type Settings = {
   theme: {
-    color_scheme: string;
-    color_variables: string;
+    colorScheme: string;
+    colorVariables: string;
   };
   //   email: {
   //     to: string;
@@ -33,7 +35,7 @@ export type Button = {
 };
 
 export type Form = {
-  fields: any;
+  form_fields: any;
   form_type: "default_form" | "cf7_form" | "gravity_form";
   form_id?: string;
   form_disabled?: boolean;
@@ -41,6 +43,9 @@ export type Form = {
   messages: {
     success: string;
     error: string;
+  };
+  redirects: {
+    success: string;
   };
 };
 

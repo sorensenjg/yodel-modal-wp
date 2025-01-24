@@ -57,6 +57,8 @@ class Yodel_Wp {
 	 */
 	protected $version;
 
+	protected $api_url;
+
 	/**
 	 * Define the core functionality of the plugin.
 	 *
@@ -73,8 +75,10 @@ class Yodel_Wp {
 			$this->version = '1.0.0';
 		}
 		$this->plugin_name = 'yodel-wp';
+		$this->api_url = YODEL_WP_API_URL;
 
 		$this->load_dependencies();
+		$this->initialize_updater();  
 		$this->set_locale();
 		$this->define_admin_hooks();
 		$this->define_public_hooks();
@@ -113,6 +117,8 @@ class Yodel_Wp {
 		 */
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-yodel-wp-i18n.php';
 
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-yodel-wp-updater.php';  
+
 		/**
 		 * The class responsible for defining all actions that occur in the admin area.
 		 */
@@ -126,6 +132,12 @@ class Yodel_Wp {
 
 		$this->loader = new Yodel_Wp_Loader();
 
+	}
+
+	private function initialize_updater() {
+		// if( ! class_exists( 'Yodel_Image_Updater' ) ) {
+			new Yodel_Image_Updater( $this->get_plugin_name(), $this->get_version(), $this->api_url );
+		// }	   
 	}
 
 	/**
@@ -152,7 +164,8 @@ class Yodel_Wp {
 	 * @since    1.0.0
 	 * @access   private
 	 */
-	private function define_admin_hooks() { 
+	private function define_admin_hooks() {     
+		
 		$plugin_admin = new Yodel_Wp_Admin( $this->get_plugin_name(), $this->get_version() );
 
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_styles' );

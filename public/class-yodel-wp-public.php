@@ -143,7 +143,8 @@ class Yodel_Wp_Public {
         wp_localize_script($this->plugin_name . '-index', 'yodelWp', [
             'config' => array(
                 'nonce' => wp_create_nonce('yodel-nonce'),
-                'ajaxUrl' => admin_url('admin-ajax.php'),  
+                'baseUrl' => get_site_url(),
+                'ajaxUrl' => admin_url('admin-ajax.php'),   
                 'containerId' => 'yodel-wp-container',
                 'isUserAdmin' => in_array('administrator',  wp_get_current_user()->roles),
                 'isUserLoggedIn' => is_user_logged_in() 
@@ -184,10 +185,10 @@ class Yodel_Wp_Public {
         $form_data = array_diff_key($_POST, array_flip(['action', 'nonce', 'post_id', 'submission_type'])); 
         $success = $this->process_submission($submission_type, $post_id, $form_data);  
 
-        if ( $success ) { 
-            wp_send_json_success('Form submitted successfully'); 
+        if ( $success ) {   
+            wp_send_json_success('Form submitted successfully');
         } else {
-            wp_send_json_error('Form submission failed'); 
+            wp_send_json_error('Form submission failed');  
         }
     }
 
@@ -224,8 +225,8 @@ class Yodel_Wp_Public {
             $body .= '<p><strong style="color: #2c3e50;">' . ucfirst($key) . ':</strong> ' . $value . '</p>'; 
         } 
 
-        $body .= '</div>';
-        $body .= '<p style="font-size: 12px; color: #7f8c8d; text-align: center; margin-top: 20px;">Created using <a href="https://www.yodelayheehoo.com" style="color: #3498db; text-decoration: none;">Yodel</a></p>'; 
+        $body .= '</div>'; 
+        $body .= '<p style="font-size: 12px; color: #7f8c8d; text-align: center; margin-top: 20px;">Created using <a href="https://useyodel.com" style="color: #3498db; text-decoration: none;">Yodel</a></p>'; 
         $body .= '</div>'; 
 
         $mail_sent = wp_mail($to, $subject, $body, $headers); 
@@ -348,25 +349,79 @@ class Yodel_Wp_Public {
     private function get_form_object($post_id) { 
         $form = array();
         
-        $form['fields'] = !empty(carbon_get_post_meta($post_id, 'yodel_wp_form')) ? carbon_get_post_meta($post_id, 'yodel_wp_form') : [];
         $form['form_type'] = carbon_get_post_meta($post_id, 'yodel_wp_form_type');  
-
-        switch ($form['form_type']) { 
+           
+        switch ($form['form_type']) {   
             case 'cf7_form': 
                 $form['form_id'] = carbon_get_post_meta($post_id, 'yodel_wp_form_cf7')[0]['id'] ?? null;    
-                break;
+                $form['form_fields'] = $this->get_cf7_form($form['form_id'])['fields'];   
+                $form['messages'] = $this->get_cf7_form($form['form_id'])['messages'];
+                break; 
 
             default:
-                $form['form_id'] = null;
+                $form['form_id'] = null; 
+                $form['form_fields'] = carbon_get_post_meta($post_id, 'yodel_wp_form_fields');
+                $form['messages']['success'] = carbon_get_post_meta($post_id, 'yodel_wp_form_success_message');
+                $form['messages']['error'] = carbon_get_post_meta($post_id, 'yodel_wp_form_error_message');
                 break;
-        }
+        } 
 
         $form['form_disabled'] = carbon_get_post_meta($post_id, 'yodel_wp_form_disabled');  
         $form['submission_type'] = carbon_get_post_meta($post_id, 'yodel_wp_form_submission_type');
-        $form['messages']['success'] = carbon_get_post_meta($post_id, 'yodel_wp_form_success_message');
-        $form['messages']['error'] = carbon_get_post_meta($post_id, 'yodel_wp_form_error_message');
+        $form['redirects']['success'] = carbon_get_post_meta($post_id, 'yodel_wp_form_success_redirect_url');
         
         return $form;
+    }
+
+    private function get_cf7_form($form_id) {
+        if (!$form_id || !function_exists('wpcf7_contact_form')) {
+            return array();
+        }
+    
+        $cf7_form = wpcf7_contact_form($form_id);
+        if (!$cf7_form) {
+            return array();
+        }
+    
+        
+        $properties = $cf7_form->get_properties();
+        $form_tags = $cf7_form->scan_form_tags();
+    
+        $form_fields = array();
+        foreach ($form_tags as $tag) {
+            if (!empty($tag['name'])) {
+
+                $processed_options = array();
+                if (!empty($tag['options'])) {
+                    foreach ($tag['options'] as $option) {
+                        $parts = explode(':', $option);
+                        if (count($parts) === 2) {
+                            $processed_options[trim($parts[0])] = trim($parts[1]);
+                        } else {
+                            $processed_options[$option] = $option;
+                        }
+                    }
+                }
+
+                $form_fields[] = array(
+                    'name' => $tag['name'],
+                    'type' => str_replace('*', '', $tag['type']),
+                    'required' => strpos($tag['type'], '*') !== false,
+                    'options' => $processed_options,
+                    'label' => ucwords(str_replace(['_', '-'], ' ', $tag['name'])),
+                );
+            }
+        }
+
+        $messages = array(
+            'success' => $properties['messages']['mail_sent_ok'],
+            'error' => $properties['messages']['mail_sent_ng'],
+        );
+
+        return array( 
+            'fields' => $form_fields, 
+            'messages' => $messages 
+        ); 
     }
 
     private function get_settings_object($post_id) {
