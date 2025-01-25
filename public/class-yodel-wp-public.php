@@ -56,7 +56,7 @@ class Yodel_Wp_Public {
         add_action( 'wp_footer', array( $this, 'render_react_container' ) );
         add_action( 'wp_ajax_yodel_form_submit', array( $this, 'handle_form_submission' ) );
         add_action( 'wp_ajax_nopriv_yodel_form_submit', array( $this, 'handle_form_submission' ) ); 
-    
+        add_filter( 'wpcf7_spam', array( $this, 'bypass_wpcf7_spam' ) );
 	}
 
 	/**
@@ -299,7 +299,7 @@ class Yodel_Wp_Public {
 
         $layout['layout'] = $data['_type']; 
         $layout['columns'] = $columns;
-        $layout['title'] = apply_filters( 'yodel_modal_title', $data['title'] ?? '', $post_id );  
+        $layout['title'] = apply_filters( 'yodel_modal_title', $data['title'] ?? '', $post_id ); 
 
         // Apply content filters
         $content_fields = ['content', 'form_before', 'form_after'];
@@ -506,6 +506,19 @@ class Yodel_Wp_Public {
         <?php
         return ob_get_clean();
     } 
+
+    // TODO: Add cf7 recaptcha compatibility
+    public function bypass_wpcf7_spam($skip) {    
+        $submission = WPCF7_Submission::get_instance();
+        $spam_log = $submission->get_spam_log();
+        $is_recaptcha = !!array_column($spam_log, 'agent', 'recaptcha');
+    
+        if(isset($_POST['_yodel_modal_form']) && $is_recaptcha) {
+            return false;
+        }
+    
+        return $skip; 
+    }
 
     private function console_log( $output, $with_script_tags = true ) {
         $output = 'console.log(' . json_encode($output, JSON_HEX_TAG) . ');';

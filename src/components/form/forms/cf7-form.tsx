@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 // import { zodResolver } from "@hookform/resolvers/zod";
 // import { z } from "zod";
-import { cn } from "@/lib/utils";
+// import { cn } from "@/lib/utils";
 import { MoveRightIcon } from "lucide-react";
 import { Config, Form as FormType } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import {
   FormMessage,
   FormButton,
 } from "@/components/ui/form";
+import { jsonToFormData } from "@/lib/utils";
 
 // const formSchema = z.object({
 //   email: z.string({
@@ -74,10 +75,7 @@ export function ContactForm7({
     }
 
     try {
-      let formData = new FormData();
-      Object.entries(rest).forEach(([key, value]) => {
-        formData.append(key, value as string);
-      });
+      const formData = jsonToFormData({ _yodel_modal_form: true, ...rest });
 
       const response = await fetch(
         `${config.baseUrl}/wp-json/contact-form-7/v1/contact-forms/${form_id}/feedback`,
@@ -86,14 +84,12 @@ export function ContactForm7({
           body: formData,
         }
       );
-      console.log(response);
 
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }
 
       const result = await response.json();
-      console.log(result);
 
       if (result.status !== "mail_sent") {
         throw new Error(result.message);

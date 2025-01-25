@@ -78,7 +78,7 @@ class Yodel_Wp {
 		$this->api_url = YODEL_WP_API_URL;
 
 		$this->load_dependencies();
-		$this->initialize_updater();  
+		// $this->initialize_updater();   
 		$this->set_locale();
 		$this->define_admin_hooks();
 		$this->define_public_hooks();

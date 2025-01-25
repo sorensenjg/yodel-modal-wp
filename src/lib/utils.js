@@ -23,3 +23,20 @@ export function applyCustomThemeVariables(ref, colorVariablesString) {
     }
   });
 }
+
+export const jsonToFormData = (json) => {
+  try {
+    const data = new FormData();
+
+    for (const k in json) {
+      if (json.hasOwnProperty(k)) {
+        data.append(k, json[k]);
+      }
+    }
+
+    return data;
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+};
