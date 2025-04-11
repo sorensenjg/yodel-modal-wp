@@ -1,22 +1,23 @@
-import { Fragment, useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Cookies from "js-cookie";
-import { Config, Modal as ModalType, Button as ButtonType } from "@/types";
-import { cn, applyCustomThemeVariables } from "@/lib/utils";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Form } from "./form";
+  Config,
+  Settings,
+  Modal as ModalType,
+  Button as ButtonType,
+} from "@/types";
+import { applyCustomThemeVariables } from "@/lib/utils";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Layout1, Layout2, Layout3, Layout4 } from "./layouts";
 
 interface ModalProps extends ModalType {
   config: Config;
+  globalSettings: Settings;
 }
 
 export function Modal({
   config,
+  globalSettings,
   id,
   status,
   layout,
@@ -33,7 +34,8 @@ export function Modal({
 }: ModalProps) {
   const containerRef = useRef(null);
   const [isVisible, setIsVisible] = useState(false);
-  const [formSubmitted, setFormSubmitted] = useState(false);
+  const [visibilityBypass, setVisibilityBypass] = useState(false);
+  const [formSubmitted, setFormSubmitted] = useState<boolean | string>(false);
 
   useEffect(() => {
     if (containerRef.current && settings.theme.color_variables) {
@@ -87,6 +89,22 @@ export function Modal({
     };
   }, []);
 
+  useEffect(() => {
+    if (containerRef.current && settings.theme.color_variables) {
+      applyCustomThemeVariables(
+        containerRef.current,
+        settings.theme.color_variables
+      );
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof formSubmitted === "string") {
+      handleDismiss();
+      window.location.href = formSubmitted;
+    }
+  }, [formSubmitted]);
+
   const handleExitIntent = useCallback(
     (e: MouseEvent) => {
       if (e.clientY <= 10 && !isVisible) {
@@ -120,7 +138,9 @@ export function Modal({
         document.addEventListener("mousemove", handleExitIntent);
       } else {
         const timer = setTimeout(() => {
-          setIsVisible(true);
+          if (!visibilityBypass) {
+            setIsVisible(true);
+          }
         }, settings.display.delay * 1000);
         return () => clearTimeout(timer);
       }
@@ -134,25 +154,21 @@ export function Modal({
   }, [isExitIntent, handleExitIntent]);
 
   const handleDismiss = () => {
-    const dismissalExpiration = settings.display.dismissal_expiration;
+    const dismissalExpiration = settings.display.dismissal_expiration || null;
+    const cookieName = `yodel-wp-${id}-dismissed-at`;
+    const currentTime = new Date().getTime().toString();
 
     if (dismissalExpiration === undefined || dismissalExpiration === null) {
-      // Don't set a cookie if expiration is empty
-      return;
-    } else if (dismissalExpiration === 0) {
-      // Set a session-only cookie
-      Cookies.set(
-        `yodel-wp-${id}-dismissed-at`,
-        new Date().getTime().toString()
-      );
-    } else {
-      // Set a cookie with the specified expiration in days
-      Cookies.set(
-        `yodel-wp-${id}-dismissed-at`,
-        new Date().getTime().toString(),
-        { expires: dismissalExpiration / 24 }
-      );
+      setVisibilityBypass(true);
+      return; // No cookie if expiration is empty
     }
+
+    const cookieOptions =
+      dismissalExpiration === 0
+        ? undefined // Session cookie
+        : { expires: dismissalExpiration / 24 }; // Cookie with expiration in days
+
+    Cookies.set(cookieName, currentTime, cookieOptions);
   };
 
   const handleClose = () => {
@@ -171,6 +187,8 @@ export function Modal({
 
   const handleModalEvents = useCallback(
     (e: any) => {
+      console.log(formSubmitted);
+
       if (!form || form.form_disabled || formSubmitted) {
         handleClose();
       } else {
@@ -184,9 +202,9 @@ export function Modal({
   const isDisplayedOnCurrentPage = settings.display.displayed_at.includes(
     window.location.pathname
   );
-  const isTargetPage = buttons?.some((button) =>
-    window.location.pathname.includes(button.url)
-  );
+  const isTargetPage = buttons?.some((button) => {
+    return window.location.pathname.includes(button.url);
+  });
 
   if ((!isDisplayedGlobally && !isDisplayedOnCurrentPage) || isTargetPage) {
     return null;
@@ -203,78 +221,52 @@ export function Modal({
           onInteractOutside={handleModalEvents}
           aria-describedby={undefined}
         >
-          <div
-            className={cn(
-              "yodel-modal__row grid",
-              columns === 2 && "md:grid-cols-2"
-            )}
-          >
-            <div className="yodel-modal__column flex flex-col justify-center items-center px-6 py-12">
-              <DialogHeader className="yodel-modal__header">
-                {image && (
-                  <img
-                    className="yodel-modal__image"
-                    src={image.src}
-                    alt={image.alt}
-                  />
-                )}
-                <DialogTitle
-                  className="yodel-modal__title text-3xl md:text-4xl"
-                  dangerouslySetInnerHTML={{
-                    __html: title ?? "",
-                  }}
-                />
-                {content && (
-                  <div
-                    className="yodel-modal__content prose max-w-none"
-                    dangerouslySetInnerHTML={{
-                      __html: content,
-                    }}
-                  />
-                )}
-                {buttons && buttons.length > 0 && (
-                  <div className="yodel-modal__buttons w-full grid grid-cols-2 gap-4 pt-8">
-                    {buttons?.map((button, index) => (
-                      <Button
-                        key={index}
-                        variant={button.variant}
-                        onClick={() => handleButtonClick(button)}
-                      >
-                        {button.title}
-                      </Button>
-                    ))}
-                  </div>
-                )}
-              </DialogHeader>
-            </div>
-            {form && !form.form_disabled && (
-              <div
-                className="yodel-modal__column relative flex justify-center items-center px-6 py-12 text-white bg-primary"
-                // style={{ backgroundColor: modalSettings.bgColor }}
-              >
-                {background_image && (
-                  <Fragment>
-                    <div
-                      className="yodel-modal__background-image absolute top-0 left-0 w-full h-full bg-cover bg-center"
-                      style={{
-                        backgroundImage: `url(${background_image.src})`,
-                      }}
-                    />
-                    <div className="yodel-modal__background-overlay absolute top-0 left-0 w-full h-full bg-black/70" />
-                  </Fragment>
-                )}
-                <Form
-                  config={config}
-                  modal_id={id}
-                  before={form_before}
-                  after={form_after}
-                  {...form}
-                  onSuccess={() => setFormSubmitted(true)}
-                  onClose={handleClose}
-                />
-              </div>
-            )}
-          </div>
+          {layout === "layout_1" && (
+            <Layout1
+              image={image}
+              title={title}
+              content={content}
+              buttons={buttons}
+              onButtonClick={handleButtonClick}
+            />
+          )}
+          {layout === "layout_2" && (
+            <Layout2
+              config={config}
+              globalSettings={globalSettings}
+              id={id}
+              title={title}
+              content={content}
+              buttons={buttons}
+              form={form}
+              onButtonClick={handleButtonClick}
+              onFormSubmitted={(success) => setFormSubmitted(success)}
+              onClose={handleClose}
+            />
+          )}
+          {layout === "layout_3" && (
+            <Layout3
+              config={config}
+              globalSettings={globalSettings}
+              id={id}
+              title={title}
+              content={content}
+              buttons={buttons}
+              form={form}
+              onButtonClick={handleButtonClick}
+              onFormSubmitted={(success) => setFormSubmitted(success)}
+              onClose={handleClose}
+            />
+          )}
+          {layout === "layout_4" && (
+            <Layout4
+              title={title}
+              content={content}
+              buttons={buttons}
+              image={image}
+              onButtonClick={handleButtonClick}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

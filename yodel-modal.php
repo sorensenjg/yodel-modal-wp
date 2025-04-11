@@ -16,7 +16,7 @@
  * Plugin Name:       Yodel Modal
  * Plugin URI:        https://useyodel.com
  * Description:       Inspired by the ancient yodels of the Central Alps, Yodel brings you a unique way to reach your audience with custom modals. Just as yodelers once communicated across mountains, this plugin lets you share your message effectively and engagingly.
- * Version:           1.3.1
+ * Version:           1.4.1
  * Author:            Yodel   
  * Author URI:        https://useyodel.com
  * License:           GPL-2.0+
@@ -35,7 +35,7 @@ if ( ! defined( 'WPINC' ) ) {
  * Start at version 1.0.0 and use SemVer - https://semver.org
  * Rename this for your plugin and update it as you release new versions.
  */
-define( 'YODEL_WP_VERSION', '1.3.1' );  
+define( 'YODEL_WP_VERSION', '1.4.2' );  
 define( 'YODEL_WP_BASENAME',  plugin_basename( __FILE__ ) ); 
 define( 'YODEL_WP_API_URL', ( defined( 'WP_ENVIRONMENT_TYPE' ) && WP_ENVIRONMENT_TYPE === 'local' ) ? 'http://localhost:3000' : 'https://useyodel.com' );
   

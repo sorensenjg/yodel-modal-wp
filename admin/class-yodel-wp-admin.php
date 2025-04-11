@@ -313,6 +313,9 @@ class Yodel_Wp_Admin {
 				Field::make( 'text', 'yodel_wp_form_error_message', __( 'Error message', 'yodel-wp' ) )
 					->set_default_value( 'There was an error with your submission. Please try again.' )
 					->set_required( true ),
+				Field::make( 'checkbox', 'yodel_wp_form_business_email_only', __( 'Business Email Only', 'yodel-wp' ) )
+					->set_default_value( false )  
+					->set_help_text( 'If enabled, only business email addresses will be allowed to submit the form.' ),
 			) )
 			->add_tab( __( 'Email', 'yodel-wp' ), array(
 				Field::make( 'text', 'yodel_wp_email_to', __( 'To', 'yodel-wp' ) )
@@ -370,6 +373,15 @@ class Yodel_Wp_Admin {
 									->add_options( array(
 										'link' => __( 'Link', 'yodel-wp' ),
 										'close' => __( 'Close Button', 'yodel-wp' ),
+									) ),
+								Field::make( 'select', 'variant', __( 'Variant', 'yodel-wp' ) )
+									->add_options( array(
+										'default' => __( 'Default', 'yodel-wp' ),
+										'destructive' => __( 'Destructive', 'yodel-wp' ),
+										'outline' => __( 'Outline', 'yodel-wp' ),
+										'secondary' => __( 'Secondary', 'yodel-wp' ),
+										'ghost' => __( 'Ghost', 'yodel-wp' ),
+										'link' => __( 'Link', 'yodel-wp' ),
 									) ),
 								Field::make( 'text', 'title', __( 'Title', 'yodel-wp' ) ),
 								Field::make( 'text', 'url', __( 'URL', 'yodel-wp' ) )
@@ -462,6 +474,56 @@ class Yodel_Wp_Admin {
 								->set_default_value( 'By submitting this form, you consent to join our mailing list. You may unsubscribe at any time. We are dedicated to protecting your privacy and will not sell, rent, or share your information with any third parties.' )
 								->set_help_text( 'This will be displayed below the form.' ),
 							Field::make( 'image', 'background_image', __( 'Background Image', 'yodel-wp' ) ),
+					) ) 
+					->add_fields( 'layout_4', __( 'Two Columns w/ Image', 'yodel-wp' ), array(  
+						Field::make( 'text', 'title', __( 'Title', 'yodel-wp' ) ),
+						Field::make( 'rich_text', 'content', __( 'Content', 'yodel-wp' ) ),
+						Field::make( 'complex', 'buttons', __( 'Buttons', 'yodel-wp' ) ) 
+							->setup_labels( array( 
+								'plural_name' => 'Buttons',
+								'singular_name' => 'Button',
+							) )
+							->set_max( 2 )
+							->add_fields( array(  
+								Field::make( 'select', 'type', __( 'Type', 'yodel-wp' ) )
+									->add_options( array(
+										'link' => __( 'Link', 'yodel-wp' ),
+										'close' => __( 'Close Button', 'yodel-wp' ),
+									) ),
+								Field::make( 'select', 'variant', __( 'Variant', 'yodel-wp' ) )
+									->add_options( array(
+										'default' => __( 'Default', 'yodel-wp' ),
+										'destructive' => __( 'Destructive', 'yodel-wp' ),
+										'outline' => __( 'Outline', 'yodel-wp' ),
+										'secondary' => __( 'Secondary', 'yodel-wp' ),
+										'ghost' => __( 'Ghost', 'yodel-wp' ),
+										'link' => __( 'Link', 'yodel-wp' ),
+									) ),
+								Field::make( 'text', 'title', __( 'Title', 'yodel-wp' ) ),
+								Field::make( 'text', 'url', __( 'URL', 'yodel-wp' ) )
+									->set_conditional_logic( array( 
+										'relation' => 'AND',
+										array(
+											'field' => 'type',
+											'value' => 'link',
+											'compare' => '=',
+										)
+									) ),
+								Field::make( 'select', 'target', __( 'Target', 'yodel-wp' ) )
+									->set_conditional_logic( array( 
+										'relation' => 'AND',
+										array(
+											'field' => 'type',
+											'value' => 'link',
+											'compare' => '=',
+										)
+									) )
+									->add_options( array(
+										'_self' => __( '_self (current window)', 'yodel-wp' ),
+										'_blank' => __( '_blank (new window)', 'yodel-wp' ),
+									) )
+							) ),  
+							Field::make( 'image', 'image', __( 'Image', 'yodel-wp' ) ),
 					) ) 
 
 					// ->add_fields( 'content', __( 'Content', 'yodel-wp' ), array(  

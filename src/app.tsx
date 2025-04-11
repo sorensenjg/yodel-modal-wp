@@ -23,7 +23,12 @@ export default function App({ config, settings, modals }: AppProps) {
   return (
     <div ref={appRef} className={cn("yodel-app", settings.theme.color_scheme)}>
       {modals.map((modal) => (
-        <Modal key={`modal-${modal.id}`} config={config} {...modal} />
+        <Modal
+          key={`modal-${modal.id}`}
+          config={config}
+          globalSettings={settings}
+          {...modal}
+        />
       ))}
     </div>
   );

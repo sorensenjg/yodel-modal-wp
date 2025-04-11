@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-// import { zodResolver } from "@hookform/resolvers/zod";
-// import { z } from "zod";
-// import { cn } from "@/lib/utils";
+// import { getAkismetFieldValues, checkSpam } from "@/lib/akismet";
 import { MoveRightIcon } from "lucide-react";
-import { Config, Form as FormType } from "@/types";
+import { isBusinessEmail, getFieldValueByType } from "@/lib/utils";
+import { Config, Settings, Form as FormType } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,15 +33,17 @@ import { jsonToFormData } from "@/lib/utils";
 
 interface FormProps extends FormType {
   config: Config;
+  globalSettings: Settings;
   modal_id: number;
   before?: string;
   after?: string;
-  onSuccess: () => void;
+  onSuccess: (success: boolean | string) => void;
   onClose: () => void;
 }
 
 export function ContactForm7({
   config,
+  globalSettings,
   modal_id,
   form_id,
   form_fields,
@@ -74,6 +75,30 @@ export function ContactForm7({
       return;
     }
 
+    if (
+      globalSettings.form.businessEmailOnly &&
+      !isBusinessEmail(getFieldValueByType(values, form_fields, "email"))
+    ) {
+      console.log(
+        "Business email only, you are not allowed to submit this form!"
+      );
+      return;
+    }
+
+    // if (config.akismetEnabled) {
+    //   const comment = {
+    //     ...getAkismetFieldValues(form_fields, rest),
+    //     comment_content: getFieldValueByType(values, form_fields, "message"),
+    //   };
+    //   const akismet = await checkSpam(comment);
+    //   console.log("Akismet:", akismet);
+
+    //   if (akismet.enabled && akismet.is_spam) {
+    //     console.log("Akismet says... this is spam!");
+    //     // return;
+    //   }
+    // }
+
     try {
       const formData = jsonToFormData({ _yodel_modal_form: true, ...rest });
 
@@ -96,10 +121,10 @@ export function ContactForm7({
       }
 
       if (redirects.success) {
-        window.location.href = redirects.success;
+        onSuccess(redirects.success);
       } else {
         setIsSubmitted(true);
-        onSuccess();
+        onSuccess(true);
       }
     } catch (error) {
       if (error instanceof Error) {

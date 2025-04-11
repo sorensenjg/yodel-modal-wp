@@ -5,12 +5,16 @@ export type Config = {
   containerId: string;
   isUserAdmin: boolean;
   isUserLoggedIn: boolean;
+  akismetEnabled: boolean;
 };
 
 export type Settings = {
   theme: {
-    colorScheme: string;
-    colorVariables: string;
+    color_scheme: string;
+    color_variables: string;
+  };
+  form: {
+    businessEmailOnly: boolean;
   };
   //   email: {
   //     to: string;
@@ -50,7 +54,7 @@ export type Form = {
 };
 
 export type Layout = {
-  layout: "layout_1" | "layout_2" | "layout_3" | "layout_cf7";
+  layout: "layout_1" | "layout_2" | "layout_3" | "layout_4" | "layout_cf7";
   columns: number;
   image?: {
     src: string;

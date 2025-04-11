@@ -1,12 +1,13 @@
-import { Config, Form as FormType } from "@/types";
+import { Config, Settings, Form as FormType } from "@/types";
 import { DefaultForm, ContactForm7 } from "./forms";
 
 interface FormControllerProps extends FormType {
   config: Config;
+  globalSettings: Settings;
   modal_id: number;
   before?: string;
   after?: string;
-  onSuccess: () => void;
+  onSuccess: (success: boolean | string) => void;
   onClose: () => void;
 }
 

@@ -2,9 +2,10 @@ import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { cn } from "@/lib/utils";
+import { cn, isBusinessEmail } from "@/lib/utils";
+import { checkSpam } from "@/lib/akismet";
 import { MoveRightIcon } from "lucide-react";
-import { Config, Form as FormType } from "@/types";
+import { Config, Settings, Form as FormType } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,15 +34,17 @@ type FormData = z.infer<typeof formSchema>;
 
 interface FormProps extends FormType {
   config: Config;
+  globalSettings: Settings;
   modal_id: number;
   before?: string;
   after?: string;
-  onSuccess: () => void;
+  onSuccess: (success: boolean | string) => void;
   onClose: () => void;
 }
 
 export function DefaultForm({
   config,
+  globalSettings,
   modal_id,
   form_fields,
   before,
@@ -67,10 +70,40 @@ export function DefaultForm({
   const onSubmit = async (values: FormData) => {
     const { ohnohoney, ...rest } = values;
 
+    // check if bot changed the honeypot field
     if (values.ohnohoney === 1) {
       console.log("Bleep boop, you are a bot!");
       return;
     }
+
+    if (
+      globalSettings.form.businessEmailOnly &&
+      !isBusinessEmail(values.email)
+    ) {
+      console.log(
+        "Business email only, you are not allowed to submit this form!"
+      );
+      return;
+    }
+
+    // if (config.akismetEnabled) {
+    //   // use Akismet to check for spam
+    //   const comment = {
+    //     comment_author: [values.given_name, values.family_name]
+    //       .filter(Boolean)
+    //       .join(" ")
+    //       .trim(),
+    //     comment_author_email: values.email,
+    //     comment_content: values.message,
+    //   };
+    //   const akismet = await checkSpam(comment);
+    //   console.log("Akismet:", akismet);
+
+    //   if (akismet.enabled && akismet.is_spam) {
+    //     console.log("Akismet says... this is spam!");
+    //     // return;
+    //   }
+    // }
 
     try {
       const response = await fetch(config.ajaxUrl, {
@@ -96,10 +129,10 @@ export function DefaultForm({
 
       if (result.success) {
         if (redirects.success) {
-          window.location.href = redirects.success;
+          onSuccess(redirects.success);
         } else {
           setIsSubmitted(true);
-          onSuccess();
+          onSuccess(true);
         }
       } else {
         throw new Error(result.data);

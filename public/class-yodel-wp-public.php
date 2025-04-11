@@ -56,6 +56,8 @@ class Yodel_Wp_Public {
         add_action( 'wp_footer', array( $this, 'render_react_container' ) );
         add_action( 'wp_ajax_yodel_form_submit', array( $this, 'handle_form_submission' ) );
         add_action( 'wp_ajax_nopriv_yodel_form_submit', array( $this, 'handle_form_submission' ) ); 
+        add_action( 'wp_ajax_yodel_akismet_check_spam', array( $this, 'akismet_check_spam' ) );
+        add_action( 'wp_ajax_nopriv_yodel_akismet_check_spam', array( $this, 'akismet_check_spam' ) );
         add_filter( 'wpcf7_spam', array( $this, 'bypass_wpcf7_spam' ) );
 	}
 
@@ -139,22 +141,27 @@ class Yodel_Wp_Public {
 
         $theme_color_scheme = carbon_get_theme_option('yodel_wp_theme_color_scheme');
         $theme_color_variables = carbon_get_theme_option('yodel_wp_theme_color_variables');
+        $form_business_email_only = carbon_get_theme_option('yodel_wp_form_business_email_only');
 
         wp_localize_script($this->plugin_name . '-index', 'yodelWp', [
             'config' => array(
-                'nonce' => wp_create_nonce('yodel-nonce'),
-                'baseUrl' => get_site_url(),
-                'ajaxUrl' => admin_url('admin-ajax.php'),   
-                'containerId' => 'yodel-wp-container',
-                'isUserAdmin' => in_array('administrator',  wp_get_current_user()->roles),
-                'isUserLoggedIn' => is_user_logged_in() 
+                'nonce'             => wp_create_nonce('yodel-nonce'),
+                'baseUrl'           => get_site_url(),
+                'ajaxUrl'           => admin_url('admin-ajax.php'),   
+                'containerId'       => 'yodel-wp-container',
+                'isUserAdmin'       => in_array('administrator',  wp_get_current_user()->roles),
+                'isUserLoggedIn'    => is_user_logged_in(),
+                'akismetEnabled'   => function_exists('akismet_init') && class_exists('Akismet'),  
             ),
             'modals' => $modals, 
             'settings' => array(
                 'theme' => array(
-                    'colorScheme' => $theme_color_scheme,
-                    'colorVariables' => $theme_color_variables
-                )
+                    'color_scheme'      => $theme_color_scheme,
+                    'color_variables'   => $theme_color_variables
+                ),
+                'form' => array(
+                    'businessEmailOnly' => $form_business_email_only,
+                ), 
             ), 
         ]);
 
@@ -170,8 +177,11 @@ class Yodel_Wp_Public {
     
     public function handle_form_submission() { 
         if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'yodel-nonce')) {
-            wp_send_json_error('Yodel nonce is invalid'); 
-        } 
+            wp_send_json_error('Yodel nonce is invalid', array(
+                'nonce' => $_POST['nonce'],
+                'expected' => wp_create_nonce('yodel-nonce'),
+            )); 
+        }  
 
         $post_id = $_POST['post_id'];
         $submission_type = $_POST['submission_type'];  
@@ -342,6 +352,7 @@ class Yodel_Wp_Public {
             'layout_1' => 1,
             'layout_2' => 2,
             'layout_3' => 2, 
+            'layout_4' => 2,
         );
         return $column_map[$layout] ?? 1;
     } 
@@ -455,13 +466,15 @@ class Yodel_Wp_Public {
     private function process_buttons($buttons) {
         $processed = array();
 
-        foreach ($buttons as &$button) {  
+        foreach ($buttons as &$button) { 
+            $button_type = $button['type'];
+            
             $processed[] = array(
-                'type' => $button['type'],
+                'type' => $button_type,
                 'variant' => $button['variant'],
                 'title' => $button['title'],
-                'url' => esc_url($button['url']),
-                'target' => $button['target'],
+                'url' => $button_type === 'close' ? null : esc_url($button['url']),
+                'target' => $button_type === 'close' ? null : $button['target'],
             );
         } 
 
@@ -506,6 +519,47 @@ class Yodel_Wp_Public {
         <?php
         return ob_get_clean();
     } 
+
+    function akismet_check_spam() {
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'yodel-nonce')) {
+            wp_send_json_error('Yodel nonce is invalid'); 
+        } 
+    
+        // Check if Akismet is available and active
+        if (!function_exists('akismet_init') || !class_exists('Akismet')) {
+            wp_send_json(array(
+                'enabled' => false,
+                'is_spam' => false,
+                'message' => 'Akismet not enabled'
+            ));
+            return;
+        } 
+    
+         // Prepare comment data for Akismet check
+         $comment = array(
+            'blog'                  => get_option('home'),
+            'blog_lang'             => get_locale(),
+            'blog_charset'          => get_option('blog_charset'),
+            'user_ip'               => Akismet::get_ip_address(),
+            'user_agent'            => $_SERVER['HTTP_USER_AGENT'],
+            'referrer'              => $_SERVER['HTTP_REFERER'],
+            'permalink'             => $_POST['permalink'],
+            'comment_type'          => 'contact-form',
+            'comment_author'        => $_POST['comment_author'],
+            'comment_author_email'  => $_POST['comment_author_email'],
+            'comment_content'       => $_POST['comment_content'],
+        ); 
+    
+        // Check if it's spam
+        $is_spam = Akismet::check_db_comment($comment, array(), 'contact_form');
+    
+        wp_send_json(array(
+            'data'      => $comment,
+            'enabled'   => true,
+            'is_spam'   => $is_spam,
+            'message'   => $is_spam ? 'This submission has been identified as potential spam' : ''
+        ));
+    }
 
     // TODO: Add cf7 recaptcha compatibility
     public function bypass_wpcf7_spam($skip) {    
